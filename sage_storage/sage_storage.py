@@ -23,14 +23,20 @@ def doRequest(method, url, **kwargs):
         r = requests.request(method, url, **kwargs)
     except:
         raise
-
+    #print("test: " +r.text)
     if r.status_code != 200:
         try:
             result = r.json()
         except Exception:
+            #print("could not get json: \"" +r.text+"\"")
             raise Exception("status_code: {}".format(r.status_code))
 
-        
+        #print("test: " +r.text)
+
+        # if there is an error field, there is no need to raise an exception
+        if "error" in result:
+            return result
+
         raise Exception("status_code: {} {}".format(r.status_code, result))
 
     try:
@@ -60,9 +66,6 @@ def createBucket(host, token, name, datatype, debug=False):
 
     url = str(host) + "/api/v1/objects"
 
-    if debug:
-        logging.debug(url)
-
     return doRequest("POST", url, headers=headers, params=params)
     
 def showBucket(host, token, bucketID, debug=False):
@@ -72,14 +75,10 @@ def showBucket(host, token, bucketID, debug=False):
         raise "host not defined"
 
     headers = createHeader(token)
-    
-   
 
     url = str(host) + "/api/v1/objects/" + bucketID
 
-    
-    
-    
+
     return doRequest("GET", url, headers=headers)
 
 
@@ -92,10 +91,7 @@ def listBuckets(host, token, debug=False):
 
     headers = createHeader(token)
     
-   
-
     url = str(host) + "/api/v1/objects"
-
 
     return doRequest("GET", url, headers=headers)
     
@@ -115,8 +111,43 @@ def getPermissions(host, token, bucketID, debug=False):
     params = {"permissions" : True}
     url = str(host) + "/api/v1/objects/" + bucketID 
 
-    if debug:
-        logging.debug(url)
-
     return doRequest("GET", url, headers=headers, params=params)
     
+
+# curl -X PUT "localhost:8080/api/v1/objects/${BUCKET_ID}?permissions" 
+# -d '{"granteeType": "USER", "grantee": "otheruser", "permission": "READ"}' -H "Authorization: sage ${SAGE_USER_TOKEN}"
+def addPermissions(host, token, bucketID, granteeType, grantee, permission):
+    if not host :
+        raise "host not defined"
+
+    dataDict = {
+        "granteeType": granteeType,
+        "grantee": grantee,
+        "permission": permission
+    }
+
+    data = json.dumps(dataDict)
+
+    headers = createHeader(token)
+    params = {"permissions" : True}
+    url = str(host) + "/api/v1/objects/" + bucketID 
+
+    return doRequest("PUT", url, headers=headers, params=params, data=data)
+
+def makePublic(host, token, bucketID):
+    if not host :
+        raise "host not defined"
+
+    dataDict = {
+        "granteeType": "GROUP",
+        "grantee": "AllUsers",
+        "permission": "READ"
+    }
+
+    data = json.dumps(dataDict)
+
+    headers = createHeader(token)
+    params = {"permissions" : True}
+    url = str(host) + "/api/v1/objects/" + bucketID 
+
+    return doRequest("PUT", url, headers=headers, params=params, data=data)
