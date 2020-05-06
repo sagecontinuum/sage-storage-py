@@ -7,6 +7,7 @@ setup(
     url='https://github.com/sagecontinuum/sage-storage-py',
     install_requires=[
         'requests',
+        'requests-toolbelt',
     ],
     packages=[
         'sage_storage',
