@@ -5,8 +5,8 @@ import requests
 import json
 import sys
 import logging
-
-
+from requests_toolbelt.multipart.encoder import MultipartEncoder
+import os
 
 def createHeader(token):
     headers = {}
@@ -81,6 +81,18 @@ def showBucket(host, token, bucketID, debug=False):
 
     return doRequest("GET", url, headers=headers)
 
+def deleteBucket(host, token, bucketID, debug=False):
+    
+
+    if not host :
+        raise "host not defined"
+
+    headers = createHeader(token)
+
+    url = str(host) + "/api/v1/objects/" + bucketID
+
+
+    return doRequest("DELETE", url, headers=headers)
 
 # TODO add query
 def listBuckets(host, token, debug=False):
@@ -151,3 +163,55 @@ def makePublic(host, token, bucketID):
     url = str(host) + "/api/v1/objects/" + bucketID 
 
     return doRequest("PUT", url, headers=headers, params=params, data=data)
+
+def uploadFile(host, token, bucketID, localFile, key):
+
+    if not host :
+        raise "host not defined"
+
+    if not key:
+        key = ""
+    headers = createHeader(token)
+    
+   
+    
+    localFileBase = os.path.basename(localFile)
+
+        
+
+    mp_encoder = MultipartEncoder(
+        fields={
+            
+            # plain file object, no filename or mime type produces a
+            # Content-Disposition header with just the part name
+            # (filename, data, content_type, headers)
+            'file': (localFileBase, open(localFile, 'rb')),
+        }
+    )
+
+    headers['Content-Type'] = mp_encoder.content_type
+
+    url = str(host) + "/api/v1/objects/" + bucketID + "/" + key
+
+    return doRequest("PUT", url, headers=headers, data=mp_encoder)
+
+
+
+def listFiles(host, token, bucketID, prefix, recursive):
+
+    
+    if not host :
+        raise "host not defined"
+
+    headers = createHeader(token)
+    
+    if not prefix:
+        prefix = ""
+
+    url = str(host) + "/api/v1/objects/"+bucketID +"/"+prefix
+    
+    params = {}
+    if recursive:
+        params["recursive"] = True
+
+    return doRequest("GET", url, headers=headers, params=params)
