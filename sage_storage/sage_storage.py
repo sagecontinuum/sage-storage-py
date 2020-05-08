@@ -7,6 +7,7 @@ import sys
 import logging
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 import os
+from pathlib import Path
 
 def createHeader(token):
     headers = {}
@@ -146,6 +147,34 @@ def addPermissions(host, token, bucketID, granteeType, grantee, permission):
 
     return doRequest("PUT", url, headers=headers, params=params, data=data)
 
+# curl -X DELETE "localhost:8080/api/v1/objects/${BUCKET_ID}?permissions&grantee=USER:otheruser:READ" -H "Authorization: sage ${SAGE_USER_TOKEN}"
+#  last argument "permission" is optional
+def deletePermissions(host, token, bucketID, granteeType, grantee, permission):
+    if not host :
+        raise "host not defined"
+
+    #dataDict = {
+    #    "granteeType": granteeType,
+    #    "grantee": grantee,
+    #    "permission": permission
+    #}
+
+    #data = json.dumps(dataDict)
+
+    headers = createHeader(token)
+
+    permissionTuple = granteeType + ":" + grantee
+    if permission:
+        permissionTuple += ":" + permission
+
+    params = {"permissions" : True,
+                "grantee" : permissionTuple
+            }
+
+    url = str(host) + "/api/v1/objects/" + bucketID 
+
+    return doRequest("DELETE", url, headers=headers, params=params)
+
 def makePublic(host, token, bucketID):
     if not host :
         raise "host not defined"
@@ -171,6 +200,8 @@ def uploadFile(host, token, bucketID, localFile, key):
 
     if not key:
         key = ""
+
+
     headers = createHeader(token)
     
    
@@ -178,7 +209,7 @@ def uploadFile(host, token, bucketID, localFile, key):
     localFileBase = os.path.basename(localFile)
 
         
-
+    # streaming multipart form-data object
     mp_encoder = MultipartEncoder(
         fields={
             
@@ -189,11 +220,73 @@ def uploadFile(host, token, bucketID, localFile, key):
         }
     )
 
+
     headers['Content-Type'] = mp_encoder.content_type
 
+    if len(key) > 0:
+        if key[0] == '/':
+            key = key[1:]
+
+    
+    url = str(host) + "/api/v1/objects/" + bucketID + "/" + key
+    print(url)
+    
+    return doRequest("PUT", url, headers=headers, data=mp_encoder)
+
+# TODO 
+# - add option to preserve path of key 
+def downloadFile(host, token, bucketID, key, target):
+
+    if not host :
+        raise Exception("host not defined")
+
+    if not key:
+        raise Exception("key not defined")
+
+    if key == "":
+        raise Exception("key is empty")
+
+
+    # create targetFile string 
+    if target:
+
+        if target[-1] == "/":
+            targetFile = os.path.join(target, os.path.basename(key))
+        else:
+            targetFile = target
+
+    else:
+        targetFile = os.path.basename(key)
+
+    # prevent overwrite
+    targetFileObject = Path(targetFile)
+    if targetFileObject.exists():
+        raise Exception("target file already exists")
+
+
+    headers = createHeader(token)
+    
+
+    
+    if len(key) > 0:
+        if key[0] == '/':
+            key = key[1:]
+
+    
     url = str(host) + "/api/v1/objects/" + bucketID + "/" + key
 
-    return doRequest("PUT", url, headers=headers, data=mp_encoder)
+
+    with requests.get(url, headers=headers, stream=True) as r:
+        r.raise_for_status()
+        with open(targetFile, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=1024 * 1024): 
+                # If you have chunk encoded response uncomment if
+                # and set chunk_size parameter to None.
+                #if chunk: 
+                f.write(chunk)
+
+    return
+    #return doRequest("GET", url, headers=headers, data=mp_encoder)
 
 
 
@@ -215,3 +308,21 @@ def listFiles(host, token, bucketID, prefix, recursive):
         params["recursive"] = True
 
     return doRequest("GET", url, headers=headers, params=params)
+
+
+def deleteFile(host, token, bucketID, key):
+
+    
+    if not host :
+        raise "host not defined"
+
+    headers = createHeader(token)
+    
+    
+    url = str(host) + "/api/v1/objects/"+bucketID +"/"+key
+    
+    params = {}
+    #if recursive:
+    #    params["recursive"] = True
+
+    return doRequest("DELETE", url, headers=headers, params=params)
