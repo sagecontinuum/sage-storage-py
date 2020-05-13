@@ -65,7 +65,7 @@ def createBucket(host, token, name, datatype, debug=False):
     if datatype:
         params["type"] = datatype
 
-    url = str(host) + "/api/v1/objects"
+    url = f'{host}/api/v1/objects'
 
     return doRequest("POST", url, headers=headers, params=params)
     
@@ -77,7 +77,7 @@ def showBucket(host, token, bucketID, debug=False):
 
     headers = createHeader(token)
 
-    url = str(host) + "/api/v1/objects/" + bucketID
+    url = f'{host}/api/v1/objects/{bucketID}'
 
 
     return doRequest("GET", url, headers=headers)
@@ -90,7 +90,7 @@ def deleteBucket(host, token, bucketID, debug=False):
 
     headers = createHeader(token)
 
-    url = str(host) + "/api/v1/objects/" + bucketID
+    url = f'{host}/api/v1/objects/{bucketID}'
 
 
     return doRequest("DELETE", url, headers=headers)
@@ -104,7 +104,7 @@ def listBuckets(host, token, debug=False):
 
     headers = createHeader(token)
     
-    url = str(host) + "/api/v1/objects"
+    url = f'{host}/api/v1/objects'
 
     return doRequest("GET", url, headers=headers)
     
@@ -122,7 +122,7 @@ def getPermissions(host, token, bucketID, debug=False):
     
    
     params = {"permissions" : True}
-    url = str(host) + "/api/v1/objects/" + bucketID 
+    url = f'{host}/api/v1/objects/{bucketID}'
 
     return doRequest("GET", url, headers=headers, params=params)
     
@@ -143,7 +143,7 @@ def addPermissions(host, token, bucketID, granteeType, grantee, permission):
 
     headers = createHeader(token)
     params = {"permissions" : True}
-    url = str(host) + "/api/v1/objects/" + bucketID 
+    url = f'{host}/api/v1/objects/{bucketID}' 
 
     return doRequest("PUT", url, headers=headers, params=params, data=data)
 
@@ -163,15 +163,15 @@ def deletePermissions(host, token, bucketID, granteeType, grantee, permission):
 
     headers = createHeader(token)
 
-    permissionTuple = granteeType + ":" + grantee
+    permissionTuple = f'{granteeType}:{grantee}'
     if permission:
-        permissionTuple += ":" + permission
+        permissionTuple = f'{granteeType}:{grantee}:{permission}'
 
     params = {"permissions" : True,
                 "grantee" : permissionTuple
             }
 
-    url = str(host) + "/api/v1/objects/" + bucketID 
+    url = f'{host}/api/v1/objects/{bucketID}' 
 
     return doRequest("DELETE", url, headers=headers, params=params)
 
@@ -189,7 +189,7 @@ def makePublic(host, token, bucketID):
 
     headers = createHeader(token)
     params = {"permissions" : True}
-    url = str(host) + "/api/v1/objects/" + bucketID 
+    url = f'{host}/api/v1/objects/{bucketID}' 
 
     return doRequest("PUT", url, headers=headers, params=params, data=data)
 
@@ -228,7 +228,7 @@ def uploadFile(host, token, bucketID, localFile, key):
             key = key[1:]
 
     
-    url = str(host) + "/api/v1/objects/" + bucketID + "/" + key
+    url = f'{host}/api/v1/objects/{bucketID}/{key}'
     print(url)
     
     return doRequest("PUT", url, headers=headers, data=mp_encoder)
@@ -273,7 +273,7 @@ def downloadFile(host, token, bucketID, key, target):
             key = key[1:]
 
     
-    url = str(host) + "/api/v1/objects/" + bucketID + "/" + key
+    url = f'{host}/api/v1/objects/{bucketID}/{key}'
 
 
     with requests.get(url, headers=headers, stream=True) as r:
@@ -301,7 +301,7 @@ def listFiles(host, token, bucketID, prefix, recursive):
     if not prefix:
         prefix = ""
 
-    url = str(host) + "/api/v1/objects/"+bucketID +"/"+prefix
+    url = f'{host}/api/v1/objects/{bucketID}/{prefix}'
     
     params = {}
     if recursive:
@@ -319,7 +319,7 @@ def deleteFile(host, token, bucketID, key):
     headers = createHeader(token)
     
     
-    url = str(host) + "/api/v1/objects/"+bucketID +"/"+key
+    url = f'{host}/api/v1/objects/{bucketID}/{key}'
     
     params = {}
     #if recursive:
