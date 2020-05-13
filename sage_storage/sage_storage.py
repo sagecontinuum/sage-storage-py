@@ -69,7 +69,7 @@ def createBucket(host, token, name, datatype):
 
     return doRequest("POST", url, headers=headers, params=params)
     
-def showBucket(host, token, bucketID:
+def showBucket(host, token, bucketID):
     
 
     if not host :
