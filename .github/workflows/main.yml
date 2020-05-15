@@ -24,9 +24,10 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.x'
+      - name: debug 
+        run: ls -latr 
       - name: docker-compose environment
-        run: |
-          docker-compose up --build -d
+        run: docker-compose up --build -d
       - name: install
         run: pip install .
       - name: run tests
