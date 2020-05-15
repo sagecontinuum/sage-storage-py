@@ -24,13 +24,15 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.x'
-      - name: debug 
-        run: ls -latr 
       - name: docker-compose environment
-        run: docker-compose up --build -d
-      - name: install
+        run: |
+          git clone https://github.com/sagecontinuum/sage-storage-api.git
+          pushd sage-storage-api
+          docker-compose up --build -d
+          popd
+      - name: install library
         run: pip install .
-      - name: run tests
+      - name: run CLI tests
         run: |
           git clone https://github.com/sagecontinuum/sage-cli.git
           cd sage-cli
