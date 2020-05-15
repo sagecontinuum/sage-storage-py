@@ -32,6 +32,8 @@ jobs:
           popd
       - name: install library
         run: pip install .
+      - name: install other sage-cli dependencies
+        run: pip install click
       - name: run CLI tests
         run: |
           git clone https://github.com/sagecontinuum/sage-cli.git
