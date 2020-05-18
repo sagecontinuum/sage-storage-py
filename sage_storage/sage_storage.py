@@ -193,7 +193,8 @@ def makePublic(host, token, bucketID):
 
     return doRequest("PUT", url, headers=headers, params=params, data=data)
 
-def uploadFile(host, token, bucketID, localFile, key):
+
+def uploadDirectory(host, token, bucketID, sourceDirectory, key):
 
     if not host :
         raise "host not defined"
@@ -232,6 +233,121 @@ def uploadFile(host, token, bucketID, localFile, key):
     print(url)
     
     return doRequest("PUT", url, headers=headers, data=mp_encoder)
+
+
+
+def _uploadFile(host, token, bucketID, source, key):
+    localFileBase = os.path.basename(source)
+
+
+    headers = createHeader(token)
+
+
+    # streaming multipart form-data object
+    mp_encoder = MultipartEncoder(
+        fields={
+            
+            # plain file object, no filename or mime type produces a
+            # Content-Disposition header with just the part name
+            # (filename, data, content_type, headers)
+            'file': (localFileBase, open(source, 'rb')),
+        }
+    )
+
+
+    headers['Content-Type'] = mp_encoder.content_type
+
+
+    url = f'{host}/api/v1/objects/{bucketID}/{key}'
+    print(url)
+    
+    result = doRequest("PUT", url, headers=headers, data=mp_encoder)
+
+    if result == None:
+        raise Exception("doRequest returned None")
+
+    if isinstance(result,dict):
+        if "error" in result:
+            return result
+
+    return
+
+# upload files and direcories specifies in sources
+# directories are copied recursively
+def upload(host, token, bucketID, sources, key):
+
+    if not host :
+        raise "host not defined"
+
+    if not key:
+        key = ""
+
+    if len(key) > 0 and key[0] == '/':
+        key = key[1:]
+
+    if len(sources) > 1 and len(key) > 0:
+        if key[-1] != "/":
+            raise Exception("Target key should end with a \"/\" to indicate a directory")
+
+    #headers = createHeader(token)
+    
+    count = 0
+
+    for source in sources:
+
+        if os.path.isfile(source):
+
+            result = _uploadFile(host, token, bucketID, source, key)
+            if isinstance(result,dict):
+                if "error" in result:
+                    return result
+            
+            #count += 1
+
+
+        if os.path.isdir(source):
+
+            sourceDirName = source
+            if sourceDirName[-1]=="/":
+                sourceDirName = sourceDirName[:-1]
+
+            sourceDirName = os.path.basename(sourceDirName)
+
+            
+
+            #print(f'is dir {sourceDirName} ({source})')
+            for root, dirs, files in os.walk(source):
+                #print(root)
+                #print(dirs)
+                #print(files)
+                root_suffix = root[len(source):]
+                if len(root_suffix) > 0 and root_suffix[0] == "/":
+                    root_suffix = root_suffix[1:]
+                path = root.split(os.sep)
+                #print((len(path) - 1) * '---', os.path.basename(root))
+                for file in files:
+
+                    localFile = os.path.join(root, file)
+                    print(f'localFile: {localFile}')
+
+                    print(f'key: {key} sourceDirName: {sourceDirName}  root_suffix: {root_suffix} file: {file}')
+                    remoteKey = os.path.join( key, sourceDirName, root_suffix, file)
+                    print(f'remoteKey: {remoteKey}')
+
+                    result = _uploadFile(host, token, bucketID, localFile, remoteKey)
+                    if isinstance(result,dict):
+                        if "error" in result:
+                            return result
+
+                    count += 1      
+
+                    #print(root)
+                    #print(len(path) * '---', file)
+
+
+    obj = {}
+    obj["files_uploaded"] = count
+    return obj
 
 # TODO 
 # - add option to preserve path of key 
