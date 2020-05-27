@@ -194,51 +194,14 @@ def makePublic(host, token, bucketID):
     return doRequest("PUT", url, headers=headers, params=params, data=data)
 
 
-def uploadDirectory(host, token, bucketID, sourceDirectory, key):
 
-    if not host :
-        raise "host not defined"
+
+
+def _uploadFile(host, token, bucketID, source, key=None):
+    localFileBase = os.path.basename(source)
 
     if not key:
         key = ""
-
-
-    headers = createHeader(token)
-    
-   
-    
-    localFileBase = os.path.basename(localFile)
-
-        
-    # streaming multipart form-data object
-    mp_encoder = MultipartEncoder(
-        fields={
-            
-            # plain file object, no filename or mime type produces a
-            # Content-Disposition header with just the part name
-            # (filename, data, content_type, headers)
-            'file': (localFileBase, open(localFile, 'rb')),
-        }
-    )
-
-
-    headers['Content-Type'] = mp_encoder.content_type
-
-    if len(key) > 0:
-        if key[0] == '/':
-            key = key[1:]
-
-    
-    url = f'{host}/api/v1/objects/{bucketID}/{key}'
-    print(url)
-    
-    return doRequest("PUT", url, headers=headers, data=mp_encoder)
-
-
-
-def _uploadFile(host, token, bucketID, source, key):
-    localFileBase = os.path.basename(source)
-
 
     headers = createHeader(token)
 
@@ -259,7 +222,7 @@ def _uploadFile(host, token, bucketID, source, key):
 
 
     url = f'{host}/api/v1/objects/{bucketID}/{key}'
-    print(url)
+    #print(url)
     
     result = doRequest("PUT", url, headers=headers, data=mp_encoder)
 
@@ -274,7 +237,7 @@ def _uploadFile(host, token, bucketID, source, key):
 
 # upload files and direcories specifies in sources
 # directories are copied recursively
-def upload(host, token, bucketID, sources, key):
+def upload(host, token, bucketID, sources, key=None):
 
     if not host :
         raise "host not defined"
@@ -298,11 +261,10 @@ def upload(host, token, bucketID, sources, key):
         if os.path.isfile(source):
 
             result = _uploadFile(host, token, bucketID, source, key)
-            if isinstance(result,dict):
-                if "error" in result:
-                    return result
+            if isinstance(result,dict) and "error" in result:
+                return result
             
-            #count += 1
+            count += 1
 
 
         if os.path.isdir(source):
@@ -356,10 +318,8 @@ def downloadFile(host, token, bucketID, key, target):
     if not host :
         raise Exception("host not defined")
 
-    if not key:
-        raise Exception("key not defined")
-
-    if key == "":
+   
+    if key == None or key == "":
         raise Exception("key is empty")
 
 
@@ -430,8 +390,10 @@ def listFiles(host, token, bucketID, prefix, recursive):
     return doRequest("GET", url, headers=headers, params=params)
 
 
-def deleteFile(host, token, bucketID, key):
+def deleteFile(host, token, bucketID, key=None):
 
+    if not key:
+        key = ""
     
     if not host :
         raise "host not defined"
