@@ -19,11 +19,13 @@ def createHeader(token):
 def doRequest(method, url, **kwargs):
 
     logging.debug(method +" "+url)
-
+    
     try:
-        r = requests.request(method, url, **kwargs)
+        r = requests.request(method, url, **kwargs, allow_redirects=True)
     except:
         raise
+
+    
     #print("test: " +r.text)
     if r.status_code != 200:
         try:
@@ -66,7 +68,7 @@ def createBucket(host, token, name, datatype):
         params["type"] = datatype
 
     url = f'{host}/api/v1/objects'
-
+    
     return doRequest("POST", url, headers=headers, params=params)
     
 def showBucket(host, token, bucketID):
@@ -378,8 +380,14 @@ def listFiles(host, token, bucketID, prefix, recursive):
 
     headers = createHeader(token)
     
+    
+    
+
     if not prefix:
         prefix = ""
+    else:
+        if prefix.startswith("/"):
+            prefix = prefix[1:]
 
     url = f'{host}/api/v1/objects/{bucketID}/{prefix}'
     
