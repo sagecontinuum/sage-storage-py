@@ -40,5 +40,5 @@ jobs:
           cd sage-cli
           until curl -s http://localhost:8080/api/v1/ ; do echo "no connection..." ; sleep 1 ; done
           export SAGE_USER_TOKEN=user:testuser
-          export SAGE_HOST=http://localhost:8080
+          export SAGE_STORE_URL=http://localhost:8080
           ./tests.sh
