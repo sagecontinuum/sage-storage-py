@@ -18,7 +18,7 @@ def createHeader(token):
 
 def doRequest(method, url, **kwargs):
 
-    logging.debug(method +" "+url)
+    logging.debug("{} {} {}".format(method , url, json.dumps(kwargs)) )
     
     try:
         r = requests.request(method, url, **kwargs, allow_redirects=True)
@@ -31,8 +31,7 @@ def doRequest(method, url, **kwargs):
         try:
             result = r.json()
         except Exception:
-            #print("could not get json: \"" +r.text+"\"")
-            raise Exception("status_code: {}".format(r.status_code))
+            raise Exception("status_code: {} Response: {}".format(r.status_code, r.text))
 
         #print("test: " +r.text)
 
@@ -372,7 +371,7 @@ def downloadFile(host, token, bucketID, key, target):
 
 
 
-def listFiles(host, token, bucketID, prefix, recursive):
+def listFiles(host, token, bucketID, prefix, recursive=None, cToken=None, limit=None):
 
     
     if not host :
@@ -389,11 +388,23 @@ def listFiles(host, token, bucketID, prefix, recursive):
         if prefix.startswith("/"):
             prefix = prefix[1:]
 
+    params = {}
+
+    if cToken:
+        params["ContinuationToken"] = cToken
+
+    if limit:
+        params["limit"] = limit
+
     url = f'{host}/api/v1/objects/{bucketID}/{prefix}'
     
-    params = {}
+    
     if recursive:
         params["recursive"] = True
+
+    #print(params)
+    #print(limit)
+    #sys.exit(1)
 
     return doRequest("GET", url, headers=headers, params=params)
 
