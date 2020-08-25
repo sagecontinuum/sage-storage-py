@@ -18,7 +18,19 @@ def createHeader(token):
 
 def doRequest(method, url, **kwargs):
 
-    logging.debug("{} {} {}".format(method , url, json.dumps(kwargs)) )
+
+    if logging.DEBUG >= logging.root.level:
+
+        params_str = ""
+        if "params" in kwargs:
+            params_str = json.dumps(kwargs["params"])
+
+        headers_str = ""
+        if "headers" in kwargs:
+            headers_str = json.dumps(kwargs["headers"])
+
+
+        logging.debug("{} {} params: {} headers: {}".format(method , url,  params_str, headers_str))
     
     try:
         r = requests.request(method, url, **kwargs, allow_redirects=True)
@@ -206,7 +218,7 @@ def _uploadFile(host, token, bucketID, source, key=None):
 
     headers = createHeader(token)
 
-
+   
     # streaming multipart form-data object
     mp_encoder = MultipartEncoder(
         fields={
@@ -218,14 +230,17 @@ def _uploadFile(host, token, bucketID, source, key=None):
         }
     )
 
-
+     
     headers['Content-Type'] = mp_encoder.content_type
 
 
     url = f'{host}/api/v1/objects/{bucketID}/{key}'
     #print(url)
     
-    result = doRequest("PUT", url, headers=headers, data=mp_encoder)
+    try:
+        result = doRequest("PUT", url, headers=headers, data=mp_encoder)
+    except Exception as e:
+        raise Exception("doRequest returned: "+str(e))
 
     if result == None:
         raise Exception("doRequest returned None")
@@ -239,6 +254,8 @@ def _uploadFile(host, token, bucketID, source, key=None):
 # upload files and direcories specifies in sources
 # directories are copied recursively
 def upload(host, token, bucketID, sources, key=None):
+
+    
 
     if not host :
         raise "host not defined"
@@ -260,8 +277,12 @@ def upload(host, token, bucketID, sources, key=None):
     for source in sources:
 
         if os.path.isfile(source):
+            
+            try:
+                result = _uploadFile(host, token, bucketID, source, key)
+            except Exception as e:
+                raise Exception("_uploadFile returned: "+str(e))
 
-            result = _uploadFile(host, token, bucketID, source, key)
             if isinstance(result,dict) and "error" in result:
                 return result
             
