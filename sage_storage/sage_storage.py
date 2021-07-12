@@ -31,13 +31,13 @@ def doRequest(method, url, **kwargs):
 
 
         logging.debug("{} {} params: {} headers: {}".format(method , url,  params_str, headers_str))
-    
+
     try:
         r = requests.request(method, url, **kwargs, allow_redirects=True)
     except:
         raise
 
-    
+
     #print("test: " +r.text)
     if r.status_code != 200:
         try:
@@ -62,28 +62,31 @@ def doRequest(method, url, **kwargs):
     return json_data
 
 #curl  -X POST 'localhost:8080/api/v1/objects?type=training-data&name=mybucket'  -H "Authorization: sage ${SAGE_USER_TOKEN}"
-def createBucket(host, token, name, datatype):
-    
+def createBucket(host, token, name, datatype, public=False):
+
     if not host :
         raise "host not defined"
 
     headers = createHeader(token)
-    
+
 
     params = {}
-    
+
     if name:
         params["name"] = name
 
     if datatype:
         params["type"] = datatype
 
+    if public:
+        params["public"] = "true"
+
     url = f'{host}/api/v1/objects'
-    
+
     return doRequest("POST", url, headers=headers, params=params)
-    
+
 def showBucket(host, token, bucketID):
-    
+
 
     if not host :
         raise "host not defined"
@@ -96,7 +99,7 @@ def showBucket(host, token, bucketID):
     return doRequest("GET", url, headers=headers)
 
 def deleteBucket(host, token, bucketID):
-    
+
 
     if not host :
         raise "host not defined"
@@ -110,37 +113,37 @@ def deleteBucket(host, token, bucketID):
 
 # TODO add query
 def listBuckets(host, token):
-    
+
 
     if not host :
         raise "host not defined"
 
     headers = createHeader(token)
-    
+
     url = f'{host}/api/v1/objects'
 
     return doRequest("GET", url, headers=headers)
-    
+
 
 
 
 
 def getPermissions(host, token, bucketID):
-    
+
 
     if not host :
         raise "host not defined"
 
     headers = createHeader(token)
-    
-   
+
+
     params = {"permissions" : True}
     url = f'{host}/api/v1/objects/{bucketID}'
 
     return doRequest("GET", url, headers=headers, params=params)
-    
 
-# curl -X PUT "localhost:8080/api/v1/objects/${BUCKET_ID}?permissions" 
+
+# curl -X PUT "localhost:8080/api/v1/objects/${BUCKET_ID}?permissions"
 # -d '{"granteeType": "USER", "grantee": "otheruser", "permission": "READ"}' -H "Authorization: sage ${SAGE_USER_TOKEN}"
 def addPermissions(host, token, bucketID, granteeType, grantee, permission):
     if not host :
@@ -156,7 +159,7 @@ def addPermissions(host, token, bucketID, granteeType, grantee, permission):
 
     headers = createHeader(token)
     params = {"permissions" : True}
-    url = f'{host}/api/v1/objects/{bucketID}' 
+    url = f'{host}/api/v1/objects/{bucketID}'
 
     return doRequest("PUT", url, headers=headers, params=params, data=data)
 
@@ -184,7 +187,7 @@ def deletePermissions(host, token, bucketID, granteeType, grantee, permission):
                 "grantee" : permissionTuple
             }
 
-    url = f'{host}/api/v1/objects/{bucketID}' 
+    url = f'{host}/api/v1/objects/{bucketID}'
 
     return doRequest("DELETE", url, headers=headers, params=params)
 
@@ -202,7 +205,7 @@ def makePublic(host, token, bucketID):
 
     headers = createHeader(token)
     params = {"permissions" : True}
-    url = f'{host}/api/v1/objects/{bucketID}' 
+    url = f'{host}/api/v1/objects/{bucketID}'
 
     return doRequest("PUT", url, headers=headers, params=params, data=data)
 
@@ -218,11 +221,11 @@ def _uploadFile(host, token, bucketID, source, key=None):
 
     headers = createHeader(token)
 
-   
+
     # streaming multipart form-data object
     mp_encoder = MultipartEncoder(
         fields={
-            
+
             # plain file object, no filename or mime type produces a
             # Content-Disposition header with just the part name
             # (filename, data, content_type, headers)
@@ -230,13 +233,13 @@ def _uploadFile(host, token, bucketID, source, key=None):
         }
     )
 
-     
+
     headers['Content-Type'] = mp_encoder.content_type
 
 
     url = f'{host}/api/v1/objects/{bucketID}/{key}'
     #print(url)
-    
+
     try:
         result = doRequest("PUT", url, headers=headers, data=mp_encoder)
     except Exception as e:
@@ -255,7 +258,7 @@ def _uploadFile(host, token, bucketID, source, key=None):
 # directories are copied recursively
 def upload(host, token, bucketID, sources, key=None):
 
-    
+
 
     if not host :
         raise "host not defined"
@@ -271,13 +274,13 @@ def upload(host, token, bucketID, sources, key=None):
             raise Exception("Target key should end with a \"/\" to indicate a directory")
 
     #headers = createHeader(token)
-    
+
     count = 0
 
     for source in sources:
 
         if os.path.isfile(source):
-            
+
             try:
                 result = _uploadFile(host, token, bucketID, source, key)
             except Exception as e:
@@ -285,7 +288,7 @@ def upload(host, token, bucketID, sources, key=None):
 
             if isinstance(result,dict) and "error" in result:
                 return result
-            
+
             count += 1
 
 
@@ -297,7 +300,7 @@ def upload(host, token, bucketID, sources, key=None):
 
             sourceDirName = os.path.basename(sourceDirName)
 
-            
+
 
             #print(f'is dir {sourceDirName} ({source})')
             for root, dirs, files in os.walk(source):
@@ -323,7 +326,7 @@ def upload(host, token, bucketID, sources, key=None):
                         if "error" in result:
                             return result
 
-                    count += 1      
+                    count += 1
 
                     #print(root)
                     #print(len(path) * '---', file)
@@ -333,19 +336,19 @@ def upload(host, token, bucketID, sources, key=None):
     obj["files_uploaded"] = count
     return obj
 
-# TODO 
-# - add option to preserve path of key 
+# TODO
+# - add option to preserve path of key
 def downloadFile(host, token, bucketID, key, target):
 
     if not host :
         raise Exception("host not defined")
 
-   
+
     if key == None or key == "":
         raise Exception("key is empty")
 
 
-    # create targetFile string 
+    # create targetFile string
     if target:
 
         if target[-1] == "/":
@@ -365,24 +368,24 @@ def downloadFile(host, token, bucketID, key, target):
 
 
     headers = createHeader(token)
-    
 
-    
+
+
     if len(key) > 0:
         if key[0] == '/':
             key = key[1:]
 
-    
+
     url = f'{host}/api/v1/objects/{bucketID}/{key}'
 
 
     with requests.get(url, headers=headers, stream=True) as r:
         r.raise_for_status()
         with open(tempFile, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=1024 * 1024): 
+            for chunk in r.iter_content(chunk_size=1024 * 1024):
                 # If you have chunk encoded response uncomment if
                 # and set chunk_size parameter to None.
-                #if chunk: 
+                #if chunk:
                 f.write(chunk)
 
     os.rename(tempFile, targetFile)
@@ -394,14 +397,14 @@ def downloadFile(host, token, bucketID, key, target):
 
 def listFiles(host, token, bucketID, prefix, recursive=None, cToken=None, limit=None):
 
-    
+
     if not host :
         raise "host not defined"
 
     headers = createHeader(token)
-    
-    
-    
+
+
+
 
     if not prefix:
         prefix = ""
@@ -418,8 +421,8 @@ def listFiles(host, token, bucketID, prefix, recursive=None, cToken=None, limit=
         params["limit"] = limit
 
     url = f'{host}/api/v1/objects/{bucketID}/{prefix}'
-    
-    
+
+
     if recursive:
         params["recursive"] = True
 
@@ -434,15 +437,15 @@ def deleteFile(host, token, bucketID, key=None):
 
     if not key:
         key = ""
-    
+
     if not host :
         raise "host not defined"
 
     headers = createHeader(token)
-    
-    
+
+
     url = f'{host}/api/v1/objects/{bucketID}/{key}'
-    
+
     params = {}
     #if recursive:
     #    params["recursive"] = True
